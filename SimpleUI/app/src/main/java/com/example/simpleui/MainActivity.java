@@ -6,15 +6,21 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.KeyEvent;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.ListView;
+import android.widget.ListView;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
 
     private EditText inputText;
     private CheckBox hideCheckBox;
+    private ListView historyListView;
+    private Spinner storeInfoSpinner;
 
     private SharedPreferences sharedPreferences;
     private SharedPreferences.Editor editor;
@@ -23,6 +29,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        storeInfoSpinner = (Spinner) findViewById(R.id.storeInfoSpinner);
         sharedPreferences = getSharedPreferences("settings", Context.MODE_PRIVATE);
         editor = sharedPreferences.edit();
 
@@ -44,16 +51,42 @@ public class MainActivity extends AppCompatActivity {
         });
 
         hideCheckBox = (CheckBox) findViewById(R.id.hideCheckBox);
+        hideCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+         @Override
+         public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+            editor.putBoolean("hideCheckBox", isChecked);
+            editor.commit();
+            }
+         });
+        hideCheckBox.setChecked(sharedPreferences.getBoolean("hideCheckBox", false));
+        historyListView = (ListView) findViewById(R.id.historyListView);
+        setHistory();
+        setStoreInfo();
+    }
+
+    private void setStoreInfo() {
+       String[] stores = getResources().getStringArray(R.array.storeInfo);
+       ArrayAdapter<String> storeAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item, stores);
+       storeInfoSpinner.setAdapter(storeAdapter);
+    }
+
+    private void setHistory() {
+        String[] data = Utils.readFile(this,"history.txt").split("\n");
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, data);
+        historyListView.setAdapter(adapter);
     }
 
     public void submit(View view){
         String text = inputText.getText().toString();
         editor.putString("inputText", text);
         editor.commit();
+        Utils.writeFile(this, "history.txt", text + "\n");
         if(hideCheckBox.isChecked()){
             text = "**********";
             inputText.setText("***********");
         }
-        Toast.makeText(this, text, Toast.LENGTH_LONG).show();
+        setHistory();
+
     }
 }
